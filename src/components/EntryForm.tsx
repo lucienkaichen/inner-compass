@@ -133,7 +133,7 @@ export function EntryForm() {
                         ) : (
                             <Plus size={18} className="mr-2 group-hover:rotate-90 transition-transform duration-300" />
                         )}
-                        <span>儲存日記</span>
+                        <span>{isSubmitting ? 'AI 正在連結情緒脈絡...' : '儲存日記 & AI 分析'}</span>
                     </button>
                 </div>
             </form>

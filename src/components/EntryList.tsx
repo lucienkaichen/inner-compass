@@ -1,10 +1,8 @@
 
 'use client'
 
-import { useState } from 'react'
 import { format } from 'date-fns'
-import { MoreHorizontal, Sparkles, BrainCircuit, Lightbulb, RefreshCw } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { BrainCircuit, Lightbulb, RefreshCw } from 'lucide-react'
 
 type Analysis = {
     summary: string | null
@@ -22,36 +20,6 @@ type Entry = {
 }
 
 export function EntryList({ entries }: { entries: Entry[] }) {
-    const router = useRouter()
-    const [analyzingId, setAnalyzingId] = useState<number | null>(null)
-    const [errorMsg, setErrorMsg] = useState<string | null>(null)
-
-    const handleAnalyze = async (entryId: number) => {
-        setAnalyzingId(entryId)
-        setErrorMsg(null)
-        try {
-            const res = await fetch('/api/analyze', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ entryId }),
-            })
-
-            const data = await res.json()
-
-            if (!res.ok) {
-                throw new Error(data.error || '分析失敗')
-            }
-
-            router.refresh()
-        } catch (error: any) {
-            console.error(error)
-            setErrorMsg(`⚠️ 分析失敗: ${error.message}`)
-            alert(`分析發生錯誤：\n${error.message}\n\n請檢查 Vercel 設定裡的 API Key 是否正確？`)
-        } finally {
-            setAnalyzingId(null)
-        }
-    }
-
     if (entries.length === 0) {
         return (
             <div className="text-center py-20 bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-200">
@@ -62,18 +30,11 @@ export function EntryList({ entries }: { entries: Entry[] }) {
 
     return (
         <div className="flex flex-col gap-6">
-            {errorMsg && (
-                <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 flex items-center justify-between">
-                    <span>{errorMsg}</span>
-                    <button onClick={() => setErrorMsg(null)} className="text-sm underline">關閉</button>
-                </div>
-            )}
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 items-start">
                 {entries.map((entry) => {
                     const tags = entry.tags ? JSON.parse(entry.tags as string) : []
                     const date = new Date(entry.createdAt)
-                    const isAnalyzing = analyzingId === entry.id
 
                     // Parse Analysis Data
                     let patterns: string[] = []
@@ -100,7 +61,7 @@ export function EntryList({ entries }: { entries: Entry[] }) {
                                 {entry.content}
                             </p>
 
-                            {/* AI Analysis Section */}
+                            {/* AI Analysis Section (Always shown if present) */}
                             {entry.analysis ? (
                                 <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50/50 -mx-6 px-6 pb-6 rounded-b-2xl animate-in fade-in slide-in-from-top-2 duration-500">
                                     <div className="flex items-center gap-2 mb-3 text-indigo-600 font-bold text-sm">
@@ -122,13 +83,6 @@ export function EntryList({ entries }: { entries: Entry[] }) {
                                             ))}
                                         </div>
                                     )}
-                                    <button
-                                        onClick={() => handleAnalyze(entry.id)}
-                                        className="mt-4 w-full flex items-center justify-center gap-1 text-xs text-slate-400 hover:text-indigo-600 transition-colors"
-                                    >
-                                        <RefreshCw size={12} className={isAnalyzing ? "animate-spin" : ""} />
-                                        {isAnalyzing ? "重新分析中..." : "重新分析"}
-                                    </button>
                                 </div>
                             ) : (
                                 <div className="mt-auto pt-4 flex flex-col gap-3">
@@ -139,19 +93,8 @@ export function EntryList({ entries }: { entries: Entry[] }) {
                                             </span>
                                         ))}
                                     </div>
-
-                                    <button
-                                        onClick={() => handleAnalyze(entry.id)}
-                                        disabled={isAnalyzing}
-                                        className="w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-sm font-semibold shadow-lg shadow-violet-200 hover:shadow-violet-300 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {isAnalyzing ? (
-                                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        ) : (
-                                            <Sparkles size={16} />
-                                        )}
-                                        {isAnalyzing ? '分析中...' : 'AI 深度分析'}
-                                    </button>
+                                    {/* Analysis pending or failed silently */}
+                                    <p className="text-xs text-slate-400 italic text-center mt-2">分析處理中...</p>
                                 </div>
                             )}
                         </div>
