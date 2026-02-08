@@ -21,7 +21,7 @@ export function Header() {
                     <div className="p-1.5 bg-indigo-600 rounded-lg text-white">
                         <Compass size={20} />
                     </div>
-                    <span className="hidden sm:inline-block">InnerCompass</span>
+                    <span className="hidden sm:inline-block">內在羅盤 Beta</span>
                 </Link>
 
                 <nav className="flex items-center gap-1 sm:gap-2">
