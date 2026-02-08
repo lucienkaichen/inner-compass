@@ -101,15 +101,21 @@ export async function POST(request: Request) {
             };
         }
 
-        // 5. Save Analysis to DB
-        const analysis = await prisma.analysis.create({
-            data: {
+        // 5. Save/Update Analysis to DB (Use upsert to avoid unique constraint error)
+        const analysis = await prisma.analysis.upsert({
+            where: { entryId: entry.id },
+            update: {
+                moodScore: analysisData.moodScore,
+                summary: analysisData.summary,
+                patterns: JSON.stringify(analysisData.patterns || []),
+            },
+            create: {
                 entryId: entry.id,
                 moodScore: analysisData.moodScore,
                 summary: analysisData.summary,
                 patterns: JSON.stringify(analysisData.patterns || []),
             },
-        })
+        });
 
         const strategy = await prisma.strategy.create({
             data: {
