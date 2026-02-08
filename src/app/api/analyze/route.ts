@@ -7,6 +7,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 const model = genAI.getGenerativeModel({ model: "gemini-pro" })
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
     try {
         const { entryId } = await request.json()
