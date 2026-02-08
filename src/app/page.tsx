@@ -11,6 +11,7 @@ async function getEntries() {
     try {
         const entries = await prisma.entry.findMany({
             orderBy: { createdAt: 'desc' },
+            include: { analysis: true },
         })
 
         // Serialize dates
