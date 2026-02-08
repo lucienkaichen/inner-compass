@@ -8,11 +8,11 @@ import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
 const MOODS = [
-    { label: 'Happy', icon: Laugh, color: 'text-emerald-500', bg: 'bg-emerald-50 hover:bg-emerald-100 ring-emerald-200' },
-    { label: 'Sad', icon: Frown, color: 'text-blue-500', bg: 'bg-blue-50 hover:bg-blue-100 ring-blue-200' },
-    { label: 'Anxious', icon: AlertCircle, color: 'text-amber-500', bg: 'bg-amber-50 hover:bg-amber-100 ring-amber-200' },
-    { label: 'Angry', icon: Zap, color: 'text-rose-500', bg: 'bg-rose-50 hover:bg-rose-100 ring-rose-200' },
-    { label: 'Neutral', icon: Meh, color: 'text-slate-500', bg: 'bg-slate-50 hover:bg-slate-100 ring-slate-200' },
+    { label: '快樂', icon: Laugh, color: 'text-emerald-500', bg: 'bg-emerald-50 hover:bg-emerald-100 ring-emerald-200' },
+    { label: '悲傷', icon: Frown, color: 'text-blue-500', bg: 'bg-blue-50 hover:bg-blue-100 ring-blue-200' },
+    { label: '焦慮', icon: AlertCircle, color: 'text-amber-500', bg: 'bg-amber-50 hover:bg-amber-100 ring-amber-200' },
+    { label: '生氣', icon: Zap, color: 'text-rose-500', bg: 'bg-rose-50 hover:bg-rose-100 ring-rose-200' },
+    { label: '平靜', icon: Meh, color: 'text-slate-500', bg: 'bg-slate-50 hover:bg-slate-100 ring-slate-200' },
 ]
 
 export function EntryForm() {
@@ -66,7 +66,7 @@ export function EntryForm() {
         <div className="w-full max-w-2xl mx-auto bg-white/70 backdrop-blur-md rounded-2xl shadow-xl shadow-indigo-100/50 border border-white/50 p-6 sm:p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">How are you feeling right now?</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">此刻的心情如何？</label>
                     <div className="flex flex-wrap gap-3">
                         {MOODS.map((m) => {
                             const Icon = m.icon
@@ -92,17 +92,17 @@ export function EntryForm() {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">What's on your mind?</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">你在想什麼？</label>
                     <textarea
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                         className="w-full h-40 p-4 rounded-xl border border-slate-200 bg-white/50 focus:bg-white focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all resize-none placeholder:text-slate-400 text-slate-700 leading-relaxed shadow-inner"
-                        placeholder="Pour your thoughts out here... (e.g., 'I felt overwhelmed during the meeting because...')"
+                        placeholder="把你的想法傾倒在這裡... (例如：今天開會時覺得很有壓力，因為...)"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Tags (Press Enter)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">標籤 (按下 Enter 新增)</label>
                     <div className="flex flex-wrap gap-2 p-2 min-h-[42px] rounded-xl border border-slate-200 bg-white/50 focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-400 transition-all">
                         {tags.map(tag => (
                             <span key={tag} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-medium animate-in fade-in zoom-in duration-200">
@@ -116,7 +116,7 @@ export function EntryForm() {
                             value={tagInput}
                             onChange={(e) => setTagInput(e.target.value)}
                             onKeyDown={handleAddTag}
-                            placeholder={tags.length === 0 ? "Add tags like 'Work', 'Family'..." : ""}
+                            placeholder={tags.length === 0 ? "新增標籤如 '工作', '家庭'..." : ""}
                             className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-slate-400 min-w-[120px]"
                         />
                     </div>
@@ -133,7 +133,7 @@ export function EntryForm() {
                         ) : (
                             <Plus size={18} className="mr-2 group-hover:rotate-90 transition-transform duration-300" />
                         )}
-                        <span>Save Entry</span>
+                        <span>儲存日記</span>
                     </button>
                 </div>
             </form>

@@ -16,7 +16,7 @@ export function EntryList({ entries }: { entries: Entry[] }) {
     if (entries.length === 0) {
         return (
             <div className="text-center py-20 bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-200">
-                <p className="text-slate-500 font-medium">No entries yet. Start with your first thought!</p>
+                <p className="text-slate-500 font-medium">還沒有日記。開始寫下你的第一個想法吧！</p>
             </div>
         )
     }

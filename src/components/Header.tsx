@@ -10,8 +10,8 @@ export function Header() {
     const pathname = usePathname()
 
     const navItems = [
-        { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-        { href: '/journal', label: 'Journal', icon: PenTool },
+        { href: '/', label: '總覽', icon: LayoutDashboard },
+        { href: '/journal', label: '寫日記', icon: PenTool },
     ]
 
     return (
