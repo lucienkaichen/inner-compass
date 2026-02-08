@@ -1,76 +1,107 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { GoogleGenerativeAI } from '@google/generative-ai'
-
-// Initialize Google AI with fallback to avoid build errors
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
-const model = genAI.getGenerativeModel({ model: "gemini-pro" })
 
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
     try {
         const { entryId } = await request.json()
+        const apiKey = process.env.GEMINI_API_KEY
 
-        if (!entryId) {
-            return NextResponse.json({ error: 'Entry ID is required' }, { status: 400 })
-        }
-
-        // 1. Fetch the entry
+        // 1. Fetch entry
         const entry = await prisma.entry.findUnique({
-            where: { id: entryId },
+            where: { id: parseInt(entryId) },
         })
 
-        if (!entry) {
-            return NextResponse.json({ error: 'Journal entry not found' }, { status: 404 })
-        }
+        if (!entry) return NextResponse.json({ error: 'Entry not found' }, { status: 404 })
 
-        // 2. Prepare prompt for AI
-        const prompt = `
-      You are an expert Cognitive Behavioral Therapist (CBT) and emotional analyst.
-      Analyze the following journal entry written by a user in Traditional Chinese.
-      
+        // 2. Prepare Prompt
+        const promptText = `
+      You are a CBT Therapist. Analyze this entry:
       Content: "${entry.content}"
-      Mood: ${entry.mood || 'Unknown'}
-      Tags: ${entry.tags || 'None'}
-
-      Your task is to identify emotional patterns and suggest C-B-T strategies.
+      Mood: ${entry.mood}
       
-      Output strictly in JSON format without markdown code blocks.
-      Ensure all text fields (summary, title, content) are in Traditional Chinese (繁體中文).
-
-      JSON schema:
+      Output strictly JSON:
       {
-        "moodScore": number (1-10, 10 is most intense),
-        "summary": "string (Empathetic summary in Traditional Chinese)",
-        "patterns": ["string (List of cognitive distortions e.g. '災難化思考', '全有全無', in Traditional Chinese)"],
+        "moodScore": 5,
+        "summary": "Summary in Traditional Chinese",
+        "patterns": ["Pattern 1 in TC", "Pattern 2"],
         "strategy": {
-          "title": "string (Strategy Name e.g. '漸進式放鬆', in Traditional Chinese)",
-          "content": "string (Actionable step-by-step guide in Traditional Chinese)",
-          "category": "string (e.g. 'CBT', 'Mindfulness', 'Action')",
-          "trigger": "string (When to use this strategy)"
+          "title": "Strategy Title in TC",
+          "content": "Step by step in TC",
+          "category": "CBT",
+          "trigger": "Trigger condition"
         }
       }
-    `
+    `;
 
-        // 3. Generate analysis
-        const result = await model.generateContent(prompt)
-        const response = await result.response
-        let text = response.text()
+        // 3. Try multiple AI models (v1 stable API)
+        const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+        let aiResponseText = null;
 
-        // Clean up JSON string (remove markdown code blocks if present)
-        text = text.replace(/```json/g, '').replace(/```/g, '').trim()
+        if (apiKey) {
+            for (const model of models) {
+                try {
+                    console.log(`Trying model: ${model}...`);
+                    const response = await fetch(
+                        `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                        }
+                    );
 
-        let analysisData
-        try {
-            analysisData = JSON.parse(text)
-        } catch (e) {
-            console.error("Failed to parse AI response:", text)
-            return NextResponse.json({ error: 'AI response was not valid JSON' }, { status: 500 })
+                    if (response.ok) {
+                        const data = await response.json();
+                        aiResponseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (aiResponseText) break; // Success!
+                    } else {
+                        const errText = await response.text();
+                        console.error(`Model ${model} failed:`, errText);
+                    }
+                } catch (e) {
+                    console.error(`Model ${model} network error:`, e);
+                }
+            }
+        } else {
+            console.warn("No API Key found, skipping AI models.");
         }
 
-        // 4. Save Analysis to DB
+        // 4. Fallback to Local Rule-Based Analysis if AI fully failed
+        // (This guarantees a response even if Google is down or Key is invalid)
+        let analysisData;
+
+        if (aiResponseText) {
+            try {
+                const jsonString = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
+                analysisData = JSON.parse(jsonString);
+            } catch (e) {
+                console.error("Failed to parse AI JSON, falling back to local.");
+            }
+        }
+
+        if (!analysisData) {
+            console.log("⚠️ Using Local Fallback Analysis");
+            // Local Mock Logic
+            const mood = entry.mood || '平靜';
+
+            // Dynamic Strategy depending on mood
+            let strategy = { title: "正念呼吸", content: "深呼吸五次，專注當下。", category: "Mindfulness", trigger: "日常" };
+            if (mood === '生氣') strategy = { title: "冷靜倒數", content: "從 100 倒數到 0，每次減 7。", category: "CBT", trigger: "憤怒時" };
+            if (mood === '悲傷') strategy = { title: "自我慈悲書寫", content: "寫下一句安慰自己的話，像是對待好朋友一樣。", category: "Journaling", trigger: "低落時" };
+            if (mood === '焦慮') strategy = { title: "著地練習 (Grounding)", content: "找出 5 件看得到的、4 件摸得到的、3 件聽得到的東西。", category: "CBT", trigger: "恐慌時" };
+
+            analysisData = {
+                moodScore: mood === '快樂' ? 8 : mood === '悲傷' ? 3 : mood === '焦慮' ? 4 : mood === '生氣' ? 2 : 6,
+                summary: `雖然我無法連線到 AI 大腦，但我能感受到你現在${mood}的情緒。請記住，所有情緒都是暫時的，接納它是變好的第一步。`,
+                patterns: ["暫時性情緒", "需要自我關懷"],
+                strategy: strategy
+            };
+        }
+
+        // 5. Save Analysis to DB
         const analysis = await prisma.analysis.create({
             data: {
                 entryId: entry.id,
@@ -80,21 +111,20 @@ export async function POST(request: Request) {
             },
         })
 
-        // 5. Save Strategy to DB
         const strategy = await prisma.strategy.create({
             data: {
                 title: analysisData.strategy.title,
                 content: analysisData.strategy.content,
                 category: analysisData.strategy.category,
                 trigger: analysisData.strategy.trigger,
-                isAiGenerated: true,
+                isAiGenerated: !!aiResponseText, // Mark as false if local fallback
             },
         })
 
         return NextResponse.json({ success: true, analysis, strategy })
 
     } catch (error: any) {
-        console.error("AI Analysis Error:", error)
-        return NextResponse.json({ error: error.message || 'Failed to analyze entry' }, { status: 500 })
+        console.error("Critical Error:", error)
+        return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 })
     }
 }
