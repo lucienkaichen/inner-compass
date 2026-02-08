@@ -8,19 +8,54 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 async function getEntries() {
-    const entries = await prisma.entry.findMany({
-        orderBy: { createdAt: 'desc' },
-    })
+    try {
+        const entries = await prisma.entry.findMany({
+            orderBy: { createdAt: 'desc' },
+        })
 
-    // Serialize dates
-    return entries.map(entry => ({
-        ...entry,
-        createdAt: entry.createdAt.toISOString(),
-    }))
+        // Serialize dates
+        return {
+            success: true,
+            data: entries.map(entry => ({
+                ...entry,
+                createdAt: entry.createdAt.toISOString(),
+            }))
+        }
+    } catch (error: any) {
+        console.error("Database connection error:", error)
+        return { success: false, error: error.message || String(error) }
+    }
 }
 
 export default async function Home() {
-    const entries = await getEntries()
+    const result = await getEntries()
+
+    if (!result.success) {
+        return (
+            <div className="flex min-h-screen flex-col items-center justify-center p-8 bg-red-50 text-red-900">
+                <div className="max-w-2xl bg-white p-8 rounded-2xl shadow-xl border border-red-100">
+                    <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                        ⚠️ Connection Error
+                    </h1>
+                    <p className="mb-4 text-slate-600">
+                        We couldn't connect to your Neon database. Here is the error message from the server:
+                    </p>
+                    <pre className="bg-slate-900 text-red-200 p-4 rounded-lg overflow-x-auto text-sm font-mono mb-6 whitespace-pre-wrap">
+                        {result.error}
+                    </pre>
+                    <div className="text-sm bg-blue-50 text-blue-800 p-4 rounded-lg">
+                        <strong>Troubleshooting tips:</strong>
+                        <ul className="list-disc ml-5 mt-2 space-y-1">
+                            <li>Check if DATABASE_URL in Vercel Settings ends with <code>?sslmode=require</code></li>
+                            <li>Try redeploying the project in Vercel.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    const entries = result.data || []
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
