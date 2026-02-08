@@ -1,9 +1,10 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -12,6 +13,17 @@ model Entry {
   content   String
   mood      String? 
   tags      String?  
+  analysis  Analysis?
+  createdAt DateTime @default(now())
+}
+
+model Analysis {
+  id        Int      @id @default(autoincrement())
+  entryId   Int      @unique
+  entry     Entry    @relation(fields: [entryId], references: [id])
+  summary   String?
+  moodScore Int?     // 1-10
+  patterns  String?  // JSON array of detected patterns
   createdAt DateTime @default(now())
 }
 
@@ -19,7 +31,9 @@ model Strategy {
   id        Int      @id @default(autoincrement())
   title     String
   content   String
-  tags      String?
+  category  String?  // e.g., "CBT", "Mindfulness", "Action"
+  trigger   String?  // Keywords that trigger this strategy
+  isAiGenerated Boolean @default(false)
   createdAt DateTime @default(now())
 }
 
