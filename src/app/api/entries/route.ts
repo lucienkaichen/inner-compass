@@ -75,16 +75,18 @@ export async function POST(request: Request) {
           }
         `;
 
-        // 4. Call AI (Try multiple models: v1 API)
+        // 4. Call AI (Try multiple models: v1beta API for your advanced key)
         const apiKey = process.env.GEMINI_API_KEY;
-        const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+        // Updated model list based on your key's capabilities
+        const models = ['gemini-flash-latest', 'gemini-pro-latest', 'gemini-2.0-flash-exp'];
         let aiResponseText = null;
 
         if (apiKey) {
             for (const model of models) {
                 try {
+                    console.log(`Trying model: ${model}...`);
                     const response = await fetch(
-                        `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
+                        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
                         {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
@@ -127,20 +129,27 @@ export async function POST(request: Request) {
 
             analysisData = {
                 moodScore: m === '快樂' ? 8 : m === '悲傷' ? 3 : m === '焦慮' ? 4 : m === '生氣' ? 2 : 6,
-                summary: `雖然我無法連線到 AI 大腦，但我能感受到你現在${m}的情緒。請記住，所有情緒都是暫時的，接納它是變好的第一步。`,
+                summary: `雖然我暫時無法連線到 AI 大腦，但我能感受到你現在${m}的情緒。這是一個正常的反應，請接納當下的自己。`,
                 patterns: ["暫時性情緒", "需自我關懷"],
                 strategy: strategy
             };
         }
 
         // 6. Save Analysis & Strategy (Automatically linked)
-        await prisma.analysis.create({
-            data: {
-                entryId: entry.id,
+        // Use upsert to be safe, though create should work for new entry
+        await prisma.analysis.upsert({
+            where: { entryId: entry.id },
+            update: {
                 moodScore: analysisData.moodScore,
                 summary: analysisData.summary,
                 patterns: JSON.stringify(analysisData.patterns || []),
             },
+            create: {
+                entryId: entry.id,
+                moodScore: analysisData.moodScore,
+                summary: analysisData.summary,
+                patterns: JSON.stringify(analysisData.patterns || []),
+            }
         });
 
         await prisma.strategy.create({
