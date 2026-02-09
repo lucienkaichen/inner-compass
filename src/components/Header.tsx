@@ -15,10 +15,10 @@ export function Header() {
         <header className="bg-stone-50/90 backdrop-blur-sm sticky top-0 z-50 border-b border-stone-200 shadow-sm transition-all duration-300">
             <div className="container mx-auto px-4 h-16 flex items-center justify-between font-serif">
                 <Link href="/" className="flex items-center gap-2 group">
-                    <div className="w-8 h-8 bg-stone-800 rounded-sm flex items-center justify-center text-stone-50 font-serif font-bold text-lg group-hover:scale-95 transition-transform shadow-sm">
-                        IC
+                    <div className="w-8 h-8 bg-stone-800 rounded-full flex items-center justify-center text-stone-50 font-serif font-bold text-lg group-hover:scale-95 transition-transform shadow-sm">
+                        樹
                     </div>
-                    <span className="font-bold text-stone-800 text-lg tracking-tight group-hover:text-stone-600 transition-colors hidden sm:block">Inner Compass</span>
+                    <span className="font-bold text-stone-800 text-lg tracking-tight group-hover:text-stone-600 transition-colors hidden sm:block">樹洞</span>
                 </Link>
 
                 <nav className="flex gap-1 md:gap-4 overflow-x-auto no-scrollbar scroll-smooth">

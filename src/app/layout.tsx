@@ -11,7 +11,7 @@ const notoserif = Noto_Serif_TC({
 });
 
 export const metadata: Metadata = {
-  title: "Inner Compass",
+  title: "樹洞",
   description: "你的數位情緒伴侶",
 };
 

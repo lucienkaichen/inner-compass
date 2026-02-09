@@ -81,7 +81,7 @@ export function UniversalInput({ onEntryCreated }: { onEntryCreated: () => void 
 
                 <div className="flex justify-between items-center px-4 pb-2">
                     <span className="text-xs text-stone-300 font-sans tracking-widest uppercase">
-                        {isSubmitting ? 'AI 分析中...' : 'Inner Compass'}
+                        {isSubmitting ? 'AI 分析中...' : '樹洞'}
                     </span>
                     <button
                         onClick={handleSubmit}
