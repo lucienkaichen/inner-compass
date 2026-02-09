@@ -2,14 +2,14 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export const maxDuration = 60; // Allow enough time for AI
+export const maxDuration = 60; // Extended timeout for deep analysis
 
 export async function GET() {
     try {
         const entries = await prisma.entry.findMany({
             orderBy: { createdAt: 'desc' },
             include: {
-                analysis: true, // Fetch analysis with entry
+                analysis: true,
             },
         })
         return NextResponse.json(entries)
@@ -36,50 +36,56 @@ export async function POST(request: Request) {
             },
         })
 
-        // 2. Fetch context (Previous 5 entries) for deeper analysis
+        // 2. Fetch extended context (Last 20 entries)
         const history = await prisma.entry.findMany({
             where: { id: { not: entry.id } },
             orderBy: { createdAt: 'desc' },
-            take: 5,
-            select: { content: true, mood: true, createdAt: true }
+            take: 20,
+            select: { content: true, mood: true, createdAt: true, tags: true }
         });
 
         const historyText = history.map(h =>
-            `- [${h.mood || 'Unknown'}] ${h.content.substring(0, 50)}...`
+            `[${h.createdAt.toISOString().split('T')[0]}] Mood:${h.mood} Content:${h.content.substring(0, 100)}...`
         ).join('\n');
 
-        // 3. Prepare AI Prompt with History Context
+        // 3. Prepare Advanced AI Prompt
         const promptText = `
-          You are a professional CBT Therapist.
+          You are an advanced Emotional Intelligence System.
           
-          User's Recent History (Context):
+          User's Recent History (20 Entries):
           ${historyText}
 
-          Current Entry (Target for Analysis):
+          Current Entry:
           Content: "${entry.content}"
           Mood: ${mood}
           
-          Task: Analyze the current entry in the context of their recent history. Look for patterns or recurring themes.
+          Task:
+          1. Analyze the current entry DEEPLY.
+          2. Connect it to the user's history. Is this a recurring theme? A breakthrough? A regression?
+          3. Identify specific "Emotion Tags" (e.g., #Anxiety, #Grief, #Hope).
+          4. Provide custom qualitative insights based on the content (e.g., "Sleep Quality", "Work-Life Balance", "Communication Style").
           
-          Output strictly JSON:
+          Output strictly JSON in Traditional Chinese (繁體中文):
           {
-            "summary": "Summary in Traditional Chinese, reflect on the user's feelings qualitatively",
-            "patterns": ["Pattern 1 in TC", "Pattern 2"],
+            "summary": "A warm, empathetic summary connecting current feelings to past context.",
+            "emotionTags": ["Tag1", "Tag2"], 
+            "connections": "Explicitly mention links to past entries (e.g., 'This reminds me of your entry on Jan 12 about...'). If no connection, leave empty.",
+            "distortions": ["Distortion 1", "Distortion 2"], 
+            "customInsights": {
+               "Insight Topic 1": "Analysis content...",
+               "Insight Topic 2": "Analysis content..."
+            },
             "strategy": {
-              "title": "Strategy Title in TC",
-              "content": "Step by step in TC",
-              "category": "CBT",
-              "trigger": "Trigger condition"
+              "title": "Actionable Strategy Title",
+              "content": "Step-by-step guide tailored to this specific situation.",
+              "category": "CBT/Mindfulness/Journaling",
+              "trigger": "When to use this"
             }
           }
         `;
 
-        // 4. Call AI (Try multiple models: v1beta API)
-        // Hardcoded key for debugging user's environment issue
+        // 4. Call AI (Hardcoded Key + Verified Model)
         const apiKey = "AIzaSyBEmipKpuVJVf1RvTVCWGC7oPPr18I-FoM";
-
-        // Use the exact model that worked in curl: gemini-flash-latest
-        // Also add fallbacks just in case
         const models = ['gemini-flash-latest', 'gemini-1.5-flash', 'gemini-pro'];
         let aiResponseText = null;
 
@@ -101,61 +107,64 @@ export async function POST(request: Request) {
                         aiResponseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
                         if (aiResponseText) break;
                     } else {
-                        const errText = await response.text();
-                        console.error(`Model ${model} failed:`, errText);
+                        const err = await response.text();
+                        console.error(`Model ${model} failed:`, err);
                     }
                 } catch (e) {
-                    console.error(`Model ${model} network error:`, e);
+                    console.error(`Model ${model} error:`, e);
                 }
             }
-        } else {
-            console.warn("No API Key found, skipping AI models.");
         }
 
-        // 5. Fallback Analysis (Local Logic)
+        // 5. Parse AI Response
         let analysisData;
         if (aiResponseText) {
             try {
                 const jsonString = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
                 analysisData = JSON.parse(jsonString);
             } catch (e) {
-                console.error("Failed to parse AI JSON, falling back to local.");
+                console.error("Failed to parse AI JSON");
             }
         }
 
-        // Force Local Fallback if AI failed to return valid JSON
+        // Mock Fallback (Updated for new schema)
         if (!analysisData) {
             console.log("⚠️ Using Local Fallback Analysis");
-            // Local Mock Logic, purely qualitative now
             const m = mood || '平靜';
-
-            let strategy = { title: "正念呼吸", content: "深呼吸五次，專注當下。", category: "Mindfulness", trigger: "日常" };
-            if (m === '生氣') strategy = { title: "冷靜倒數", content: "從 100 倒數到 0，每次減 7。", category: "CBT", trigger: "憤怒時" };
-            if (m === '悲傷') strategy = { title: "自我慈悲書寫", content: "寫下一句安慰自己的話。", category: "Journaling", trigger: "低落時" };
-            if (m === '焦慮') strategy = { title: "著地練習", content: "找出 5 件看得到的東西。", category: "CBT", trigger: "恐慌時" };
-
             analysisData = {
-                // moodScore removed
-                summary: `雖然我暫時無法連線到 AI 大腦，但我能感受到你現在${m}的情緒。這是一個正常的反應，請接納當下的自己。`,
-                patterns: ["暫時性情緒", "需自我關懷"],
-                strategy: strategy
+                summary: `雖然暫時無法連線到 AI 大腦，但我能感受到你現在${m}的情緒。這是一個正常的反應，請接納當下的自己。`,
+                emotionTags: ["暫時性情緒", "自我覺察"],
+                connections: "暫無歷史連結 (離線模式)",
+                distortions: [],
+                customInsights: {
+                    "暫時分析": "由於網路連線問題，目前僅提供基礎情緒標記。"
+                },
+                strategy: {
+                    title: "深呼吸練習",
+                    content: "閉上眼，深呼吸 5 次，專注於當下的感受。",
+                    category: "Mindfulness",
+                    trigger: "感到需要平靜時"
+                }
             };
         }
 
-        // 6. Save Analysis & Strategy (Automatically linked)
-        // Use upsert to be safe, though create should work for new entry
+        // 6. Save Rich Analysis
         await prisma.analysis.upsert({
             where: { entryId: entry.id },
             update: {
-                // moodScore removed from update
                 summary: analysisData.summary,
-                patterns: JSON.stringify(analysisData.patterns || []),
+                patterns: JSON.stringify(analysisData.distortions || []), // Map 'distortions' to 'patterns' column
+                emotionTags: JSON.stringify(analysisData.emotionTags || []),
+                connections: analysisData.connections || null,
+                customInsights: JSON.stringify(analysisData.customInsights || {}),
             },
             create: {
                 entryId: entry.id,
-                // moodScore removed from create (it's optional in DB so safe to omit)
                 summary: analysisData.summary,
-                patterns: JSON.stringify(analysisData.patterns || []),
+                patterns: JSON.stringify(analysisData.distortions || []),
+                emotionTags: JSON.stringify(analysisData.emotionTags || []),
+                connections: analysisData.connections || null,
+                customInsights: JSON.stringify(analysisData.customInsights || {}),
             }
         });
 
@@ -169,7 +178,7 @@ export async function POST(request: Request) {
             },
         });
 
-        // 7. Return entry with analysis included (for UI to update immediately)
+        // 7. Return Full Entry
         const fullEntry = await prisma.entry.findUnique({
             where: { id: entry.id },
             include: { analysis: true }

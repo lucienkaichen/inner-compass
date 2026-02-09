@@ -22,8 +22,11 @@ model Analysis {
   entryId   Int      @unique
   entry     Entry    @relation(fields: [entryId], references: [id])
   summary   String?
-  moodScore Int?     // 1-10
-  patterns  String?  // JSON array of detected patterns
+  // moodScore removed as requested
+  patterns  String?  // JSON array of Cognitive Distortions (e.g., ["災難化思考"])
+  emotionTags String? // JSON array of AI-detected tags (e.g., ["焦慮", "期待"])
+  connections String? // AI analysis of links to past entries
+  customInsights String? // JSON object for dynamic analysis items (e.g. {"溝通模式": "...", "睡眠品質": "..."})
   createdAt DateTime @default(now())
 }
 
