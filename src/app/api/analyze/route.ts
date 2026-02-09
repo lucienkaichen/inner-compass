@@ -105,13 +105,11 @@ export async function POST(request: Request) {
         const analysis = await prisma.analysis.upsert({
             where: { entryId: entry.id },
             update: {
-                moodScore: analysisData.moodScore,
                 summary: analysisData.summary,
                 patterns: JSON.stringify(analysisData.patterns || []),
             },
             create: {
                 entryId: entry.id,
-                moodScore: analysisData.moodScore,
                 summary: analysisData.summary,
                 patterns: JSON.stringify(analysisData.patterns || []),
             },

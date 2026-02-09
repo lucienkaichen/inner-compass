@@ -29,7 +29,10 @@ async function getEmotionData(tag: string) {
     return { entries, guide, tagName: decodedTag }
 }
 
-export default async function EmotionDetailPage({ params }: { params: { tag: string } }) {
+export default async function EmotionDetailPage(
+    props: { params: Promise<{ tag: string }> }
+) {
+    const params = await props.params;
     const { entries, guide, tagName } = await getEmotionData(params.tag)
 
     return (

@@ -5,9 +5,10 @@ import { prisma } from '@/lib/prisma'
 // GET: Fetch personalized strategy guide for a specific emotion
 export async function GET(
     request: Request,
-    { params }: { params: { tag: string } }
+    props: { params: Promise<{ tag: string }> }
 ) {
     try {
+        const params = await props.params;
         const decodedTag = decodeURIComponent(params.tag)
         const guide = await prisma.emotionGuide.findUnique({
             where: { emotion: decodedTag }
@@ -22,9 +23,10 @@ export async function GET(
 // POST: Create or Update personalized strategy guide
 export async function POST(
     request: Request,
-    { params }: { params: { tag: string } }
+    props: { params: Promise<{ tag: string }> }
 ) {
     try {
+        const params = await props.params;
         const decodedTag = decodeURIComponent(params.tag)
         const { strategy } = await request.json()
 

@@ -5,9 +5,10 @@ import { prisma } from '@/lib/prisma'
 // PATCH: Update an entry or its analysis
 export async function PATCH(
     request: Request,
-    { params }: { params: { id: string } }
+    props: { params: Promise<{ id: string }> }
 ) {
     try {
+        const params = await props.params;
         const id = parseInt(params.id)
         const body = await request.json()
         const { content, mood, tags, analysis } = body
@@ -58,9 +59,10 @@ export async function PATCH(
 // DELETE: Delete an entry
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    props: { params: Promise<{ id: string }> }
 ) {
     try {
+        const params = await props.params;
         const id = parseInt(params.id)
 
         // Privacy: Delete associated analysis and strategy first (if cascading not set)
