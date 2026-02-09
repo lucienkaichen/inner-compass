@@ -24,9 +24,6 @@ export function DailyQuote() {
             <p className="text-xl md:text-2xl font-serif text-stone-700 leading-relaxed italic mb-3">
                 「{quote.content}」
             </p>
-            <p className="text-xs font-bold uppercase tracking-widest text-stone-400">
-                — {quote.source}
-            </p>
         </div>
     )
 }

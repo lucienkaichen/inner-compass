@@ -132,12 +132,6 @@ function QuoteManager() {
                     placeholder="輸入一句話... (例如：允許一切發生)"
                     className="flex-1 p-3 border border-stone-200 rounded-sm text-sm outline-none focus:border-stone-400 bg-white"
                 />
-                <input
-                    value={author}
-                    onChange={(e) => setAuthor(e.target.value)}
-                    placeholder="作者 (選填)"
-                    className="w-full sm:w-32 p-3 border border-stone-200 rounded-sm text-sm outline-none focus:border-stone-400 bg-white"
-                />
                 <button
                     onClick={handleAdd}
                     disabled={isAdding || !content}
@@ -156,7 +150,6 @@ function QuoteManager() {
                                 <BookOpen size={12} className="inline mr-2 text-stone-300" />
                                 {q.content}
                             </p>
-                            <p className="text-stone-400 text-xs uppercase tracking-wider pl-6">— {q.source || '未知'}</p>
                         </div>
                         <button
                             onClick={() => handleDelete(q.id)}

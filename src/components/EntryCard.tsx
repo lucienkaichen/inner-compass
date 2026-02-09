@@ -23,10 +23,12 @@ export function EntryCard({ entry, onDelete }: { entry: Entry, onDelete?: () => 
     const [summary, setSummary] = useState(entry.analysis?.summary || '')
     const [isSaving, setIsSaving] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
+    const [isExpanded, setIsExpanded] = useState(false)
 
     // Derived
     const date = new Date(entry.createdAt)
     const tags = entry.analysis?.emotionTags ? JSON.parse(entry.analysis.emotionTags) : []
+    const isLongContent = entry.content.length > 150
 
     const handleSave = async () => {
         setIsSaving(true)
@@ -117,6 +119,8 @@ export function EntryCard({ entry, onDelete }: { entry: Entry, onDelete?: () => 
         )
     }
 
+    // (Removed duplicate declaration)
+
     return (
         <div className="group relative bg-white p-6 border-b border-stone-200 hover:bg-stone-50/50 transition-colors">
             {/* Hover Actions */}
@@ -134,6 +138,7 @@ export function EntryCard({ entry, onDelete }: { entry: Entry, onDelete?: () => 
                 <time className="text-xs font-bold text-stone-400 uppercase tracking-widest font-sans">
                     {format(date, 'yyyy.MM.dd')}
                 </time>
+                {/* Mood Tag - Remove if user dislikes single tag, or keep as 'Primary' */}
                 {entry.mood && (
                     <span className="text-xs font-bold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full uppercase tracking-wide">
                         {entry.mood}
@@ -141,9 +146,23 @@ export function EntryCard({ entry, onDelete }: { entry: Entry, onDelete?: () => 
                 )}
             </div>
 
-            <p className="text-stone-800 leading-relaxed text-lg mb-4 whitespace-pre-wrap font-serif">
-                {entry.content}
-            </p>
+            <div className="relative">
+                <p className={`text-stone-800 leading-relaxed text-lg mb-4 whitespace-pre-wrap font-serif ${!isExpanded && isLongContent ? 'max-h-24 overflow-hidden mask-bottom' : ''}`}>
+                    {entry.content}
+                </p>
+                {!isExpanded && isLongContent && (
+                    <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+                )}
+            </div>
+
+            {isLongContent && (
+                <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="text-xs font-bold text-stone-400 hover:text-stone-600 uppercase tracking-widest mb-4 flex items-center gap-1"
+                >
+                    {isExpanded ? '收起' : '展開全文'}
+                </button>
+            )}
 
             {/* AI Tags */}
             {tags.length > 0 && (

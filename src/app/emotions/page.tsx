@@ -8,10 +8,10 @@ import { ArrowRight, Tag } from 'lucide-react'
 export const dynamic = 'force-dynamic'
 
 async function getEmotionStats() {
-    // Correct Prisma Query: entries include analysis, then we parse locally
     const entries = await prisma.entry.findMany({
         select: {
             mood: true,
+            tags: true, // Also fetch the JSON string tags
             analysis: { select: { emotionTags: true } }
         }
     })
@@ -19,14 +19,33 @@ async function getEmotionStats() {
     const stats: Record<string, number> = {}
 
     entries.forEach(entry => {
-        // Count main mood
-        if (entry.mood) {
-            stats[entry.mood] = (stats[entry.mood] || 0) + 1
+        const uniqueTags = new Set<string>()
+
+        // 1. Primary mood
+        if (entry.mood) uniqueTags.add(entry.mood)
+
+        // 2. Secondary tags from analysis (which should be same as entry.tags usually)
+        if (entry.analysis?.emotionTags) {
+            try {
+                const parsed = JSON.parse(entry.analysis.emotionTags)
+                if (Array.isArray(parsed)) {
+                    parsed.forEach((t: any) => {
+                        if (typeof t === 'string' && t.trim()) uniqueTags.add(t.trim())
+                    })
+                }
+            } catch (e) {
+                // ignore
+            }
         }
-        // Future: Mix in AI tags
+
+        // Count unique tags for this entry
+        uniqueTags.forEach(tag => {
+            if (tag) {
+                stats[tag] = (stats[tag] || 0) + 1
+            }
+        })
     })
 
-    // Sort by count descending
     return Object.entries(stats).sort((a, b) => b[1] - a[1])
 }
 

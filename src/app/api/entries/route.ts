@@ -62,31 +62,36 @@ export async function POST(request: Request) {
         })
         const contextStr = lastEntry ? `上一篇日記：[${lastEntry.mood}] ${lastEntry.content}` : "無前次日記";
 
-        // 3. AI Analysis Prompt (Strict Focus)
+        // 3. AI Analysis Prompt (Strict Standardized Tags)
+        const standardTags = ["快樂", "平靜", "滿足", "期待", "悲傷", "憤怒", "焦慮", "迷惘", "疲憊", "愧疚", "尷尬", "遺憾", "感動", "孤獨"];
+
         const prompt = `
         你的角色設定：
         ${personaInstruction}
         
         【當前任務】
         請全神貫注地閱讀使用者的「最新日記」，並給予回應。
+        不要受上一篇日記影響。
         
         使用者最新日記內容：
         """
         ${content}
         """
 
-        (參考情境 - 上一篇日記：${contextStr}) -> 僅供參考，請勿混淆，重點是「最新日記」。
+        (參考情境 - 上一篇日記：${contextStr}) -> 僅供參考。
 
         【嚴格規則】
-        1. 回應 (aiReply) 必須針對「最新日記」的內容。如果使用者說 A，你就回應 A，絕對不要去回應上一篇日記的事情。
-        2. emotionTags 只能包含情緒形容詞 (如：焦慮、平靜、憤怒)。嚴禁出現「紀錄、日記」等名詞。
+        1. **情緒標籤標準化**：請「只」從以下清單中選擇 1-3 個最符合的標籤。嚴禁創造新詞。
+           標準清單：${standardTags.join(', ')}
+           (若有相似情緒，請自動歸類到上述清單，例如：'富足'->'滿足', '生氣'->'憤怒')
+        2. 回應 (aiReply) 必須針對「最新日記」的內容。
         3. 請用「你」來稱呼使用者。
-        4. 不要解釋你的分析過程，直接給予像朋友一樣的溫暖對話。
+        4. 不要解釋你的分析過程。
 
         請輸出純 JSON：
         {
             "summary": "一句話摘要",
-            "emotionTags": ["情緒1", "情緒2"], 
+            "emotionTags": ["標籤1", "標籤2"], 
             "aiReply": "你的回應...",
             "connections": "",
             "patterns": [], 

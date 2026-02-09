@@ -1,10 +1,10 @@
 
 import { prisma } from '@/lib/prisma'
 import { Header } from '@/components/Header'
-import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, BookOpen, Quote as QuoteIcon } from 'lucide-react'
 import { format } from 'date-fns'
+import { EmotionGuideEditor } from '@/components/EmotionGuideEditor'
 
 async function getEmotionData(tag: string) {
     const decodedTag = decodeURIComponent(tag)
@@ -16,8 +16,20 @@ async function getEmotionData(tag: string) {
 
     // Find entries with this primary mood
     // Future: Also search in emotionTags JSON
+    // Find entries where primary mood matches OR it's in the AI tags
+    // Since tags are stored as JSON string, we use contains.
+    // Note: This is an approximation. Ideally use Postgres JSONB.
     const entries = await prisma.entry.findMany({
-        where: { mood: decodedTag },
+        where: {
+            OR: [
+                { mood: decodedTag },
+                // Use contains to find the tag in the JSON string
+                // We intentionally don't include quotes to be more flexible initially, 
+                // but might risk partial matches (e.g. 'Sad' matching 'Sadness').
+                // Given our standard set, looking for "Tag" in "[\"Tag\", ...]" is decent.
+                { tags: { contains: decodedTag } }
+            ]
+        },
         orderBy: { createdAt: 'desc' },
         include: { analysis: true }
     })
@@ -37,7 +49,7 @@ export default async function EmotionDetailPage(
             <main className="container mx-auto px-4 py-12 max-w-4xl">
                 {/* Back Button */}
                 <Link href="/emotions" className="inline-flex items-center text-stone-400 hover:text-stone-800 transition-colors mb-8 text-sm uppercase tracking-widest font-bold">
-                    <ArrowLeft size={16} className="mr-2" /> 返回圖書館
+                    <ArrowLeft size={16} className="mr-2" /> 返回情緒圖書館
                 </Link>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -52,26 +64,11 @@ export default async function EmotionDetailPage(
                             </p>
                         </div>
 
-                        {/* Strategy Card Placeholder - Will implement interactive component later */}
-                        <div className="bg-white p-6 border border-stone-200 shadow-sm rounded-sm relative group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <BookOpen size={64} />
-                            </div>
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-stone-800">
-                                <span className="w-1 h-6 bg-stone-800 block"></span>
-                                應對手冊
-                            </h3>
-                            <div className="prose prose-stone prose-sm font-serif leading-relaxed text-stone-600">
-                                {guide?.strategy ? (
-                                    <p className="whitespace-pre-wrap">{guide.strategy}</p>
-                                ) : (
-                                    <p className="italic text-stone-400">尚未建立此情緒的應對策略。</p>
-                                )}
-                            </div>
-                            <button className="mt-6 w-full py-2 border border-stone-300 text-stone-500 hover:bg-stone-50 hover:text-stone-800 transition-colors text-xs uppercase tracking-widest font-bold">
-                                編輯手冊
-                            </button>
-                        </div>
+                        {/* Interactive Strategy Editor */}
+                        <EmotionGuideEditor
+                            initialStrategy={guide?.strategy || null}
+                            tag={tagName}
+                        />
                     </div>
 
                     {/* Right Column: Entry Timeline */}
@@ -96,7 +93,7 @@ export default async function EmotionDetailPage(
                                                 </time>
                                             </div>
 
-                                            <p className="text-stone-700 leading-relaxed font-serif text-lg mb-4">
+                                            <p className="text-stone-700 leading-relaxed font-serif text-lg mb-4 whitespace-pre-wrap">
                                                 {entry.content}
                                             </p>
 
