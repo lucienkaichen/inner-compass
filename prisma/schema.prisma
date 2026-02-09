@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
@@ -14,19 +15,20 @@ model Entry {
   mood      String? 
   tags      String?  
   analysis  Analysis?
+  tools     Tool[]   
   createdAt DateTime @default(now())
 }
 
 model Analysis {
   id        Int      @id @default(autoincrement())
   entryId   Int      @unique
-  entry     Entry    @relation(fields: [entryId], references: [id])
+  entry     Entry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
   summary   String?
-  // moodScore removed as requested
-  patterns  String?  // JSON array of Cognitive Distortions (e.g., ["災難化思考"])
-  emotionTags String? // JSON array of AI-detected tags (e.g., ["焦慮", "期待"])
-  connections String? // AI analysis of links to past entries
-  customInsights String? // JSON object for dynamic analysis items (e.g. {"溝通模式": "...", "睡眠品質": "..."})
+  aiReply   String?     // New: Conversational feedback
+  patterns  String?  
+  emotionTags String? 
+  connections String? 
+  customInsights String? 
   createdAt DateTime @default(now())
 }
 
@@ -34,16 +36,45 @@ model Strategy {
   id        Int      @id @default(autoincrement())
   title     String
   content   String
-  category  String?  // e.g., "CBT", "Mindfulness", "Action"
-  trigger   String?  // Keywords that trigger this strategy
+  category  String?  
+  trigger   String?  
   isAiGenerated Boolean @default(false)
+  createdAt DateTime @default(now())
 }
 
 model EmotionGuide {
   id        Int      @id @default(autoincrement())
-  emotion   String   @unique // e.g., "焦慮", "生氣"
-  strategy  String   // Long text: Customized strategy for this emotion
+  emotion   String   @unique
+  strategy  String   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+// Inner Compass 3.0 New Models
+
+model Quote {
+  id        Int      @id @default(autoincrement())
+  content   String
+  source    String?
+  isActive  Boolean  @default(true)
+  isPinned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Tool {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  category  String?
+  tags      String? 
+  sourceEntryId Int?
+  sourceEntry   Entry? @relation(fields: [sourceEntryId], references: [id])
+  isAiGenerated Boolean @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Profile {
+  id        Int      @id @default(autoincrement())
+  content   String   // Long text: Personality Analysis
+  updatedAt DateTime @updatedAt
+}

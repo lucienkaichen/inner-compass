@@ -1,91 +1,72 @@
 
-import { PrismaClient } from '@prisma/client'
+'use client'
+
+import { useState, useEffect } from 'react'
 import { Header } from '@/components/Header'
-import { EntryForm } from '@/components/EntryForm'
-import { EntryList } from '@/components/EntryList'
-import { prisma } from '@/lib/prisma'
+import { DailyQuote } from '@/components/DailyQuote'
+import { UniversalInput } from '@/components/UniversalInput'
+import { format } from 'date-fns'
 
-export const dynamic = 'force-dynamic'
-
-async function getEntries() {
-    try {
-        const entries = await prisma.entry.findMany({
-            orderBy: { createdAt: 'desc' },
-            include: { analysis: true },
-        })
-
-        // Serialize dates
-        return {
-            success: true,
-            data: entries.map(entry => ({
-                ...entry,
-                createdAt: entry.createdAt.toISOString(),
-            }))
-        }
-    } catch (error: any) {
-        console.error("Database connection error:", error)
-        return { success: false, error: error.message || String(error) }
-    }
+interface Entry {
+    id: number
+    content: string
+    createdAt: string
+    mood: string | null
 }
 
-export default async function Home() {
-    const result = await getEntries()
+export default function HomePage() {
+    const [recentEntries, setRecentEntries] = useState<Entry[]>([])
 
-    if (!result.success) {
-        return (
-            <div className="flex min-h-screen flex-col items-center justify-center p-8 bg-red-50 text-red-900">
-                <div className="max-w-2xl bg-white p-8 rounded-2xl shadow-xl border border-red-100">
-                    <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                        ⚠️ Connection Error
-                    </h1>
-                    <p className="mb-4 text-slate-600">
-                        We couldn't connect to your Neon database. Here is the error message from the server:
-                    </p>
-                    <pre className="bg-slate-900 text-red-200 p-4 rounded-lg overflow-x-auto text-sm font-mono mb-6 whitespace-pre-wrap">
-                        {result.error}
-                    </pre>
-                    <div className="text-sm bg-blue-50 text-blue-800 p-4 rounded-lg">
-                        <strong>Troubleshooting tips:</strong>
-                        <ul className="list-disc ml-5 mt-2 space-y-1">
-                            <li>Check if DATABASE_URL in Vercel Settings ends with <code>?sslmode=require</code></li>
-                            <li>Try redeploying the project in Vercel.</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        )
+    const fetchRecent = async () => {
+        try {
+            const res = await fetch('/api/entries?limit=3')
+            if (res.ok) {
+                const data = await res.json()
+                setRecentEntries(data)
+            }
+        } catch (e) {
+            console.error(e)
+        }
     }
 
-    const entries = result.data || []
+    useEffect(() => {
+        fetchRecent()
+    }, [])
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        <div className="min-h-screen bg-stone-50 font-serif text-stone-800">
             <Header />
+            <main className="container mx-auto px-4 py-16 max-w-2xl flex flex-col items-center">
 
-            <main className="container mx-auto px-4 py-8 max-w-5xl space-y-12">
-                <section className="text-center space-y-4 pt-8 pb-4">
-                    <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-                        內在羅盤
-                    </h1>
-                    <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
-                        這是一個安全的空間，讓你梳理思緒、觀察情緒流動，並發現生命旅程中的模式。
-                    </p>
-                </section>
+                {/* 1. Daily Quote */}
+                <DailyQuote />
 
-                <section className="relative z-10">
-                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-200/20 to-purple-200/20 blur-3xl rounded-full -z-10 transform scale-90 translate-y-10" />
-                    <EntryForm />
-                </section>
+                {/* 2. Universal Input (Auto-analyzes emotion & tools) */}
+                <div className="w-full mt-12 mb-20">
+                    <UniversalInput onEntryCreated={fetchRecent} />
+                </div>
 
-                <section>
-                    <div className="flex items-center justify-between mb-8">
-                        <h2 className="text-2xl font-bold text-slate-800">最近的心情紀錄</h2>
-                        <span className="bg-white px-3 py-1 rounded-full text-xs font-semibold text-slate-500 border border-slate-200">
-                            {entries.length} 篇日記
-                        </span>
+                {/* 3. Recent History (Mini Feed) */}
+                {recentEntries.length > 0 && (
+                    <div className="w-full border-t border-stone-200 pt-12 opacity-80">
+                        <h3 className="text-xs uppercase tracking-widest text-stone-400 mb-8 text-center font-sans">
+                            最近的回憶
+                        </h3>
+                        <div className="space-y-8">
+                            {recentEntries.map(entry => (
+                                <div key={entry.id} className="group relative pl-4 border-l-2 border-stone-200 hover:border-stone-400 transition-colors">
+                                    <p className="text-stone-600 line-clamp-2 text-sm leading-relaxed mb-1">
+                                        {entry.content}
+                                    </p>
+                                    <div className="flex gap-2 text-[10px] text-stone-400 uppercase tracking-wider font-sans">
+                                        <span>{format(new Date(entry.createdAt), 'MM.dd')}</span>
+                                        {entry.mood && <span>• {entry.mood}</span>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                    <EntryList entries={entries} />
-                </section>
+                )}
             </main>
         </div>
     )

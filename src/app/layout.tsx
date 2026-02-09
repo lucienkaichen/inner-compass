@@ -1,20 +1,18 @@
+
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Noto_Serif_TC } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const notoserif = Noto_Serif_TC({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
+  variable: "--font-noto-serif",
 });
 
 export const metadata: Metadata = {
-  title: "InnerCompass",
-  description: "Your emotional management system",
+  title: "Inner Compass",
+  description: "你的數位情緒伴侶",
 };
 
 export default function RootLayout({
@@ -23,10 +21,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="zh-TW">
+      <body className={`${notoserif.className} font-serif bg-stone-50 text-stone-800 antialiased`}>
         {children}
       </body>
     </html>
