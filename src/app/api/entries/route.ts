@@ -54,37 +54,40 @@ export async function POST(request: Request) {
         const userSettings = await prisma.userSettings.findFirst()
         const personaInstruction = userSettings?.aiPersona || "你是一個極具同理心、溫暖的心理諮詢師樹洞。回應風格：溫柔堅定，時時提醒「允許」的概念，接納所有情緒。"
 
-        // 2. Fetch Context
-        const recentHistory = await prisma.entry.findMany({
-            take: 5,
+        // 2. Fetch Context (Simplified to avoid distraction)
+        // Only fetch the very last entry to maintain continuity, but instruct AI to prioritize CURRENT input.
+        const lastEntry = await prisma.entry.findFirst({
             orderBy: { createdAt: 'desc' },
             select: { content: true, mood: true }
         })
-        const contextStr = recentHistory.map(e => `[${e.mood}] ${e.content}`).join('\n');
+        const contextStr = lastEntry ? `上一篇日記：[${lastEntry.mood}] ${lastEntry.content}` : "無前次日記";
 
-        // 3. AI Analysis Prompt (Strict Tagging Rule)
+        // 3. AI Analysis Prompt (Strict Focus)
         const prompt = `
-        角色設定：${personaInstruction}
+        你的角色設定：
+        ${personaInstruction}
         
-        任務：分析以下日記。
+        【當前任務】
+        請全神貫注地閱讀使用者的「最新日記」，並給予回應。
         
-        【重要規則】
-        1. emotionTags 只能包含「情緒形容詞」(例如：焦慮、平靜、憤怒、期待、失落)。
-        2. 嚴禁出現「紀錄」、「日記」、「自我覺察」、「思考」等名詞標籤。
-        3. 若無法判斷情緒，請給予 ["平靜"]。
-        4. 回應 (aiReply) 必須直接對話，不要解釋你為什麼這樣回。
+        使用者最新日記內容：
+        """
+        ${content}
+        """
 
-        使用者的日記：
-        "${content}"
+        (參考情境 - 上一篇日記：${contextStr}) -> 僅供參考，請勿混淆，重點是「最新日記」。
 
-        前次脈絡：
-        ${contextStr}
+        【嚴格規則】
+        1. 回應 (aiReply) 必須針對「最新日記」的內容。如果使用者說 A，你就回應 A，絕對不要去回應上一篇日記的事情。
+        2. emotionTags 只能包含情緒形容詞 (如：焦慮、平靜、憤怒)。嚴禁出現「紀錄、日記」等名詞。
+        3. 請用「你」來稱呼使用者。
+        4. 不要解釋你的分析過程，直接給予像朋友一樣的溫暖對話。
 
         請輸出純 JSON：
         {
             "summary": "一句話摘要",
             "emotionTags": ["情緒1", "情緒2"], 
-            "aiReply": "根據角色設定的回應 (約 50-100 字)",
+            "aiReply": "你的回應...",
             "connections": "",
             "patterns": [], 
             "toolSuggestions": []

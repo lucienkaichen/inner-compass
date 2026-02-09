@@ -4,19 +4,28 @@
 import { useState, useEffect } from 'react'
 
 export function DailyQuote() {
-    const [quote, setQuote] = useState("情緒不是問題，而是被問題所困的情緒。")
-    const [author, setAuthor] = useState("心理學家")
+    const [quote, setQuote] = useState({ content: "允許一切發生。", source: "未知" })
 
-    // Future: Fetch from API (/api/quotes/random)
-    // useEffect(() => { ... }, [])
+    useEffect(() => {
+        fetch('/api/quotes')
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    // Pick random
+                    const random = data[Math.floor(Math.random() * data.length)]
+                    setQuote(random)
+                }
+            })
+            .catch(e => console.error(e))
+    }, [])
 
     return (
-        <div className="text-center mb-12 animate-fade-in">
-            <h2 className="text-2xl md:text-3xl font-serif text-stone-800 tracking-tight leading-relaxed select-text">
-                「{quote}」
-            </h2>
-            <p className="mt-4 text-xs font-sans tracking-widest uppercase text-stone-400">
-                — {author}
+        <div className="w-full text-center py-6 border-b border-stone-200 mb-8 max-w-lg mx-auto">
+            <p className="text-xl md:text-2xl font-serif text-stone-700 leading-relaxed italic mb-3">
+                「{quote.content}」
+            </p>
+            <p className="text-xs font-bold uppercase tracking-widest text-stone-400">
+                — {quote.source}
             </p>
         </div>
     )

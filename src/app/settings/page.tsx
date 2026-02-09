@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Save, Check } from 'lucide-react'
+import { Save, Check, Plus, Trash2, BookOpen } from 'lucide-react'
 import { Header } from '@/components/Header'
 
 export default function SettingsPage() {
@@ -11,7 +11,6 @@ export default function SettingsPage() {
     const [saved, setSaved] = useState(false)
 
     useEffect(() => {
-        // Load initial settings
         fetch('/api/settings').then(res => res.json()).then(data => {
             if (data.aiPersona) setPersona(data.aiPersona)
         })
@@ -43,8 +42,8 @@ export default function SettingsPage() {
                     <h1 className="text-3xl font-bold tracking-tight mb-4 text-stone-900 border-b border-stone-200 pb-4">設定</h1>
                 </div>
 
-                {/* AI Persona (Functional) */}
-                <section className="mb-12">
+                {/* AI Persona */}
+                <section className="mb-12 animate-in fade-in slide-in-from-bottom-2">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-bold flex items-center gap-2">
                             <span className="w-2 h-2 bg-stone-800 rounded-full inline-block"></span>
@@ -71,40 +70,109 @@ export default function SettingsPage() {
                     ></textarea>
                 </section>
 
-                {/* Quotes Management (New Feature) */}
-                <section className="mb-12">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                        <span className="w-2 h-2 bg-stone-800 rounded-full inline-block"></span>
-                        首頁語錄管理
-                    </h2>
-                    <p className="text-stone-500 mb-4 text-sm font-serif italic">
-                        新增你喜歡的句子，將會輪播顯示在首頁。
+                {/* Quote Manager */}
+                <section className="mb-12 animate-in fade-in slide-in-from-bottom-4 delay-100">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                            <span className="w-2 h-2 bg-stone-800 rounded-full inline-block"></span>
+                            每日語錄庫
+                        </h2>
+                    </div>
+
+                    <p className="text-stone-500 mb-6 text-sm font-serif italic">
+                        這些語錄不需什麼大道理，只要是你看了會心一笑，或是能平靜下來的句子就好。
                     </p>
-                    <div className="bg-white border border-stone-200 divide-y divide-stone-100 rounded-sm shadow-sm">
-                        <div className="p-4 text-stone-400 text-center text-sm py-8">
-                            暫無語錄。點擊新增。
-                        </div>
-                        <div className="bg-stone-50 p-3 text-center cursor-pointer hover:bg-stone-100 transition-colors text-stone-600 uppercase text-xs tracking-widest font-bold">
-                            + 新增語錄
-                        </div>
-                    </div>
-                </section>
 
-                {/* System Settings */}
-                <section className="opacity-50 pointer-events-none">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                        <span className="w-2 h-2 bg-stone-300 rounded-full inline-block"></span>
-                        系統 (開發中)
-                    </h2>
-                    <div className="space-y-4 text-stone-400">
-                        <label className="flex items-center gap-3">
-                            <input type="checkbox" disabled /> 深色模式 (自動)
-                        </label>
-                        <button className="text-xs uppercase tracking-widest border border-stone-200 px-3 py-1">匯出所有資料 (JSON)</button>
-                    </div>
+                    <QuoteManager />
                 </section>
-
             </main>
+        </div>
+    )
+}
+
+function QuoteManager() {
+    const [quotes, setQuotes] = useState<any[]>([])
+    const [content, setContent] = useState('')
+    const [author, setAuthor] = useState('')
+    const [isAdding, setIsAdding] = useState(false)
+
+    useEffect(() => {
+        fetch('/api/quotes').then(res => res.json()).then(setQuotes)
+    }, [])
+
+    const handleAdd = async () => {
+        if (!content) return
+        setIsAdding(true)
+        const res = await fetch('/api/quotes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content, author })
+        })
+        if (res.ok) {
+            const newQuote = await res.json()
+            setQuotes([newQuote, ...quotes])
+            setContent('')
+            setAuthor('')
+        }
+        setIsAdding(false)
+    }
+
+    const handleDelete = async (id: number) => {
+        if (!confirm('確定刪除這句語錄嗎？')) return
+        await fetch(`/api/quotes?id=${id}`, { method: 'DELETE' })
+        setQuotes(quotes.filter(q => q.id !== id))
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="輸入一句話... (例如：允許一切發生)"
+                    className="flex-1 p-3 border border-stone-200 rounded-sm text-sm outline-none focus:border-stone-400 bg-white"
+                />
+                <input
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="作者 (選填)"
+                    className="w-full sm:w-32 p-3 border border-stone-200 rounded-sm text-sm outline-none focus:border-stone-400 bg-white"
+                />
+                <button
+                    onClick={handleAdd}
+                    disabled={isAdding || !content}
+                    className="px-4 py-3 bg-stone-800 text-stone-50 text-sm font-bold uppercase tracking-widest hover:bg-stone-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap"
+                >
+                    <Plus size={16} />
+                    {isAdding ? '...' : '新增'}
+                </button>
+            </div>
+
+            <div className="space-y-3">
+                {quotes.map(q => (
+                    <div key={q.id} className="flex justify-between items-start p-4 bg-white border border-stone-100 shadow-sm group hover:border-stone-300 transition-colors">
+                        <div>
+                            <p className="text-stone-800 font-serif text-base mb-1 leading-relaxed">
+                                <BookOpen size={12} className="inline mr-2 text-stone-300" />
+                                {q.content}
+                            </p>
+                            <p className="text-stone-400 text-xs uppercase tracking-wider pl-6">— {q.source || '未知'}</p>
+                        </div>
+                        <button
+                            onClick={() => handleDelete(q.id)}
+                            className="text-stone-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    </div>
+                ))}
+
+                {quotes.length === 0 && (
+                    <div className="text-center py-10 border-2 border-dashed border-stone-100 rounded-sm">
+                        <p className="text-stone-300 text-sm font-serif italic">還沒有語錄，新增第一句吧。</p>
+                    </div>
+                )}
+            </div>
         </div>
     )
 }
