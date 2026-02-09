@@ -78,3 +78,9 @@ model Profile {
   content   String   // Long text: Personality Analysis
   updatedAt DateTime @updatedAt
 }
+
+model UserSettings {
+  id          Int      @id @default(autoincrement())
+  aiPersona   String?  // The user's custom instructions for AI
+  updatedAt   DateTime @updatedAt
+}
