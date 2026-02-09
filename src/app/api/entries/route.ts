@@ -110,9 +110,17 @@ export async function POST(request: Request) {
             if (jsonMatch) {
                 analysisData = JSON.parse(jsonMatch[0]) as AnalysisResponse;
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error("AI Generation Failed:", e);
-            // Fallback is already set
+            // Fallback with specific error message
+            analysisData = {
+                summary: "紀錄已保存。",
+                emotionTags: ["紀錄"],
+                aiReply: `AI 連線失敗，無法產生回應。錯誤原因：${e.message || String(e)}`,
+                connections: "",
+                patterns: [],
+                toolSuggestions: []
+            };
         }
 
         // 3. Save to DB (Transactional)

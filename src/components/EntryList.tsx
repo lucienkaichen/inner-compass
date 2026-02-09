@@ -1,42 +1,33 @@
+
 'use client'
 
 import { EntryCard } from './EntryCard'
 
-// Type definitions (match EntryCard)
-type Analysis = {
-    summary: string | null
-    patterns: string | null // JSON string (Cognitive Distortions)
-    emotionTags: string | null // JSON string (AI Tags)
-    connections: string | null // Text
-    customInsights: string | null // JSON string (Key-Value)
-}
-
-type Entry = {
-    id: number
-    content: string
-    mood: string | null
-    tags: string | null
-    createdAt: string | Date
-    analysis?: Analysis | null
-}
-
-export function EntryList({ entries }: { entries: Entry[] }) {
-    if (entries.length === 0) {
+// We use 'any' here primarily because the Entry type is complex and defined 
+// locally in EntryCard. In a larger app, we'd have a shared types file.
+export function EntryList({ entries }: { entries: any[] }) {
+    if (!entries || entries.length === 0) {
         return (
-            <div className="text-center py-20 bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-200">
-                <p className="text-slate-500 font-medium">還沒有日記。開始寫下你的第一個想法吧！</p>
+            <div className="text-center py-12 border-2 border-dashed border-stone-200 rounded-sm">
+                <p className="text-stone-400 font-serif italic text-lg">
+                    這裡還是一片空白。
+                </p>
+                <div className="mt-4 text-xs text-stone-300 font-sans uppercase tracking-widest">
+                    JOURNAL IS EMPTY
+                </div>
             </div>
         )
     }
 
     return (
-        <div className="flex flex-col gap-6">
-
-            <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 items-start">
-                {entries.map((entry) => (
-                    <EntryCard key={entry.id} entry={entry} />
-                ))}
-            </div>
+        <div className="flex flex-col gap-8">
+            {entries.map((entry) => (
+                <EntryCard
+                    key={entry.id}
+                    entry={entry}
+                    onDelete={() => window.location.reload()}
+                />
+            ))}
         </div>
     )
 }

@@ -3,226 +3,169 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { BrainCircuit, Lightbulb, Link, Tag, Edit2, Save, X, RefreshCw } from 'lucide-react'
-import clsx from 'clsx'
-
-// Type definitions (Reuse from before but simplified for props)
-type Analysis = {
-    summary: string | null
-    patterns: string | null
-    emotionTags: string | null
-    connections: string | null
-    customInsights: string | null
-}
+import { Edit2, Trash2, Save, X, Sparkles, AlertCircle } from 'lucide-react'
 
 type Entry = {
     id: number
     content: string
     mood: string | null
-    tags: string | null
-    createdAt: string | Date // ISO string from server
-    analysis?: Analysis | null
+    createdAt: string | Date
+    analysis?: {
+        summary: string | null
+        aiReply: string | null
+        emotionTags: string | null
+    } | null
 }
 
-export function EntryCard({ entry }: { entry: Entry }) {
+export function EntryCard({ entry, onDelete }: { entry: Entry, onDelete?: () => void }) {
     const [isEditing, setIsEditing] = useState(false)
     const [content, setContent] = useState(entry.content)
-    const [mood, setMood] = useState(entry.mood)
-
-    // AI Fields (Editable)
     const [summary, setSummary] = useState(entry.analysis?.summary || '')
     const [isSaving, setIsSaving] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
 
-    // Derived states for display
-    const userTags = entry.tags ? JSON.parse(entry.tags as string) : []
+    // Derived
     const date = new Date(entry.createdAt)
-    let distortions: string[] = []
-    let aiTags: string[] = []
-    let customInsights: Record<string, string> = {}
-
-    if (entry.analysis) {
-        try { distortions = JSON.parse(entry.analysis.patterns || '[]') } catch { }
-        try { aiTags = JSON.parse(entry.analysis.emotionTags || '[]') } catch { }
-        try { customInsights = JSON.parse(entry.analysis.customInsights || '{}') } catch { }
-    }
+    const tags = entry.analysis?.emotionTags ? JSON.parse(entry.analysis.emotionTags) : []
 
     const handleSave = async () => {
         setIsSaving(true)
         try {
-            // Optimistic update logic could go here, but let's just wait for API
             const res = await fetch(`/api/entries/${entry.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     content,
-                    mood,
-                    analysis: {
-                        summary, // Only allow editing summary for now to keep UI simple
-                        // We could add more fields later
-                    }
+                    analysis: { summary }
                 })
             })
-
             if (res.ok) {
-                // In a real app we'd mutate the list, here we just exit edit mode
-                // Ideally trigger a refresh
-                window.location.reload() // Simple refresh to fetch updated data
+                setIsEditing(false)
+                window.location.reload() // Refresh to show updates
             }
         } catch (e) {
-            console.error(e)
+            console.error("Save failed", e)
         } finally {
             setIsSaving(false)
         }
     }
 
+    const handleDelete = async () => {
+        if (!confirm("確定要永久刪除這篇日記嗎？")) return
+        setIsDeleting(true)
+        try {
+            const res = await fetch(`/api/entries/${entry.id}`, {
+                method: 'DELETE'
+            })
+            if (res.ok) {
+                if (onDelete) onDelete() // Callback to refresh list
+                else window.location.reload()
+            }
+        } catch (e) {
+            console.error("Delete failed", e)
+        } finally {
+            setIsDeleting(false)
+        }
+    }
+
     if (isEditing) {
         return (
-            <div className="bg-white p-6 rounded-2xl shadow-lg border-2 border-indigo-100 ring-4 ring-indigo-50 transition-all">
-                <div className="flex justify-between mb-4">
-                    <span className="text-xs font-bold text-indigo-400 uppercase">編輯模式</span>
-                    <div className="flex gap-2">
-                        <button onClick={() => setIsEditing(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100">
-                            <X size={18} />
-                        </button>
-                    </div>
+            <div className="bg-white p-6 rounded-sm shadow-md border border-stone-300 relative font-serif animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-center mb-4 pb-2 border-b border-stone-100">
+                    <span className="text-xs font-bold text-stone-400 uppercase tracking-widest">編輯模式</span>
+                    <button onClick={() => setIsEditing(false)} className="text-stone-400 hover:text-stone-600 transition-colors">
+                        <X size={18} />
+                    </button>
                 </div>
 
-                {/* Edit Content */}
                 <textarea
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    className="w-full h-32 p-3 mb-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-200 outline-none text-slate-700 text-sm"
+                    className="w-full h-32 p-3 mb-4 border border-stone-200 rounded-sm focus:border-stone-400 focus:ring-1 focus:ring-stone-200 outline-none text-stone-700 text-base leading-relaxed resize-none"
                     placeholder="日記內容..."
                 />
 
-                {/* Edit Mood */}
-                <select
-                    value={mood || ''}
-                    onChange={(e) => setMood(e.target.value)}
-                    className="w-full p-2 mb-4 border border-slate-200 rounded-lg text-sm bg-white"
-                >
-                    <option value="">選擇心情...</option>
-                    {['快樂', '悲傷', '焦慮', '生氣', '平靜'].map(m => (
-                        <option key={m} value={m}>{m}</option>
-                    ))}
-                </select>
-
-                {/* Edit AI Summary */}
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                    <label className="text-xs font-bold text-indigo-600 mb-1 block">AI 洞察 (修正)</label>
+                <div className="bg-stone-50 p-3 rounded-sm border border-stone-200 mb-4">
+                    <label className="text-xs font-bold text-stone-500 mb-2 block uppercase tracking-wide flex items-center gap-2">
+                        <Sparkles size={12} /> AI 摘要 (可修正)
+                    </label>
                     <textarea
                         value={summary}
                         onChange={(e) => setSummary(e.target.value)}
-                        className="w-full h-20 bg-transparent border-none outline-none text-xs text-slate-600 resize-none"
+                        className="w-full h-16 bg-transparent border-none outline-none text-sm text-stone-600 resize-none italic"
+                        placeholder="AI 尚未生成摘要..."
                     />
                 </div>
 
-                <div className="mt-4 flex justify-end">
+                <div className="flex justify-between items-center pt-2">
+                    <button
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className="flex items-center gap-2 px-3 py-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors"
+                    >
+                        <Trash2 size={14} /> 刪除
+                    </button>
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow-md hover:bg-indigo-700 disabled:opacity-50 transition"
+                        className="flex items-center gap-2 px-6 py-2 bg-stone-800 text-stone-50 hover:bg-stone-700 rounded-sm text-xs font-bold uppercase tracking-widest shadow-sm transition-all"
                     >
-                        {isSaving ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
-                        儲存修改
+                        {isSaving ? '儲存中...' : '儲存變更'}
                     </button>
                 </div>
             </div>
         )
     }
 
-    // View Mode
     return (
-        <div className="group relative flex flex-col bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-all duration-300">
-            {/* Edit Trigger (Hidden by default, shown on hover) */}
-            <button
-                onClick={() => setIsEditing(true)}
-                className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-slate-400 hover:text-indigo-600 rounded-full opacity-0 group-hover:opacity-100 transition-all border border-transparent hover:border-indigo-100 hover:shadow-sm z-10"
-                title="編輯此篇"
-            >
-                <Edit2 size={14} />
-            </button>
+        <div className="group relative bg-white p-6 border-b border-stone-200 hover:bg-stone-50/50 transition-colors">
+            {/* Hover Actions */}
+            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                    onClick={() => setIsEditing(true)}
+                    className="p-2 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-full transition-colors"
+                    title="編輯"
+                >
+                    <Edit2 size={14} />
+                </button>
+            </div>
 
-            {/* Header */}
-            <div className="flex justify-between items-start mb-4">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                    {format(date, 'MMM d, yyyy')}
-                </span>
-                {mood && (
-                    <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full capitalize">
-                        {mood}
+            <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 mb-3">
+                <time className="text-xs font-bold text-stone-400 uppercase tracking-widest font-sans">
+                    {format(date, 'yyyy.MM.dd')}
+                </time>
+                {entry.mood && (
+                    <span className="text-xs font-bold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                        {entry.mood}
                     </span>
                 )}
             </div>
 
-            {/* Content */}
-            <p className="text-slate-700 leading-relaxed mb-6 font-medium whitespace-pre-wrap pr-6">
-                {content}
+            <p className="text-stone-800 leading-relaxed text-lg mb-4 whitespace-pre-wrap font-serif">
+                {entry.content}
             </p>
 
-            {/* User Tags */}
-            {userTags.length > 0 && (
+            {/* AI Tags */}
+            {tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
-                    {userTags.map((tag: string) => (
-                        <span key={tag} className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md">
+                    {tags.map((tag: string) => (
+                        <span key={tag} className="text-[10px] px-2 py-1 border border-stone-200 text-stone-500 rounded-sm font-sans tracking-wide">
                             #{tag}
                         </span>
                     ))}
                 </div>
             )}
 
-            {/* AI Analysis Section */}
-            {entry.analysis ? (
-                <div className="mt-auto pt-4 border-t border-slate-100 bg-slate-50/30 -mx-6 px-6 pb-2 rounded-b-2xl space-y-4">
-
-                    {/* Summary */}
-                    <div className="text-sm text-slate-600 leading-relaxed pt-2">
-                        <div className="flex items-center gap-2 mb-2 text-indigo-600 font-bold text-xs uppercase tracking-wide">
-                            <BrainCircuit size={14} /> AI 深度洞察
-                        </div>
-                        {summary}
-                    </div>
-
-                    {/* AI Tags & Distortions */}
-                    {(aiTags.length > 0 || distortions.length > 0) && (
-                        <div className="flex flex-wrap gap-2">
-                            {aiTags.map((t: string) => (
-                                <span key={t} className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
-                                    <Tag size={10} /> {t}
-                                </span>
-                            ))}
-                            {distortions.map((d: string) => (
-                                <span key={d} className="inline-flex items-center gap-1 text-[10px] font-medium text-rose-600 bg-rose-50 px-2 py-1 rounded-full border border-rose-100">
-                                    <Lightbulb size={10} /> {d}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Custom Insights */}
-                    {Object.keys(customInsights).length > 0 && (
-                        <div className="space-y-2">
-                            {Object.entries(customInsights).map(([key, value]) => (
-                                <div key={key} className="bg-white p-3 rounded-xl border border-slate-100 text-xs shadow-sm">
-                                    <span className="block font-bold text-slate-700 mb-1">{key}</span>
-                                    <span className="text-slate-500">{value as string}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Connections */}
-                    {entry.analysis.connections && (
-                        <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-50 text-xs text-blue-700 flex gap-2 items-start">
-                            <Link size={14} className="mt-0.5 shrink-0" />
-                            <span>{entry.analysis.connections}</span>
-                        </div>
-                    )}
-
+            {/* AI Reply / Summary */}
+            {entry.analysis?.aiReply && (
+                <div className="bg-stone-50 p-4 border-l-2 border-stone-300 italic text-stone-600 text-sm font-serif leading-loose relative mt-4">
+                    <span className="absolute -top-3 left-2 bg-stone-50 px-1 text-[10px] text-stone-400 uppercase tracking-widest">AI Reply</span>
+                    {entry.analysis.aiReply}
                 </div>
-            ) : (
-                <div className="mt-auto pt-4 text-center">
-                    <p className="text-xs text-slate-400 italic">正在建構情緒脈絡...</p>
+            )}
+            {!entry.analysis?.aiReply && entry.analysis?.summary && (
+                <div className="text-sm text-stone-400 italic border-t border-stone-100 pt-3 mt-2">
+                    摘要：{entry.analysis.summary}
                 </div>
             )}
         </div>
