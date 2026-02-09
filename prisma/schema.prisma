@@ -37,6 +37,13 @@ model Strategy {
   category  String?  // e.g., "CBT", "Mindfulness", "Action"
   trigger   String?  // Keywords that trigger this strategy
   isAiGenerated Boolean @default(false)
+}
+
+model EmotionGuide {
+  id        Int      @id @default(autoincrement())
+  emotion   String   @unique // e.g., "焦慮", "生氣"
+  strategy  String   // Long text: Customized strategy for this emotion
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
