@@ -3,9 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
-const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" })
+// Initialize Gemini (Move inside handler for dynamic key)
 
 // GET: Fetch recent entries
 export async function GET(request: Request) {
@@ -21,6 +19,7 @@ export async function GET(request: Request) {
                 content: true,
                 mood: true,
                 createdAt: true,
+                tags: true, // fetch tags
                 analysis: {
                     select: {
                         aiReply: true,
@@ -48,11 +47,19 @@ export async function POST(request: Request) {
 
         const entryDate = date ? new Date(date) : new Date()
 
-        // 1. Fetch User Settings (CRITICAL FIX: Actually read the persona)
-        // We assume there's only one user settings record for now (ID=1)
-        // If not found, use default warm persona.
+        // 1. Fetch User Settings (Persona & API Key)
         const userSettings = await prisma.userSettings.findFirst()
         const personaInstruction = userSettings?.aiPersona || "你是一個極具同理心、溫暖的心理諮詢師樹洞。回應風格：溫柔堅定，時時提醒「允許」的概念，接納所有情緒。"
+
+        // Dynamic Key Usage
+        const apiKey = userSettings?.geminiApiKey || process.env.GEMINI_API_KEY || ''
+        if (!apiKey) {
+            // Early return or use fallback if absolutely no key
+            console.error("No API Key found")
+        }
+
+        const genAI = new GoogleGenerativeAI(apiKey)
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }) // Use explicit model name instead of alias potentially
 
         // 2. Fetch Context (Simplified to avoid distraction)
         // Only fetch the very last entry to maintain continuity, but instruct AI to prioritize CURRENT input.

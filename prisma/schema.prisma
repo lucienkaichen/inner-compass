@@ -82,5 +82,6 @@ model Profile {
 model UserSettings {
   id          Int      @id @default(autoincrement())
   aiPersona   String?  // The user's custom instructions for AI
+  geminiApiKey String? // User provided API Key (Overrides env var)
   updatedAt   DateTime @updatedAt
 }

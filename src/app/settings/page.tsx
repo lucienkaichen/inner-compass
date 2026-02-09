@@ -7,12 +7,17 @@ import { Header } from '@/components/Header'
 
 export default function SettingsPage() {
     const [persona, setPersona] = useState('')
+    const [apiKey, setApiKey] = useState('')
     const [isSaving, setIsSaving] = useState(false)
     const [saved, setSaved] = useState(false)
+    const [isSavingKey, setIsSavingKey] = useState(false)
+    const [savedKey, setSavedKey] = useState(false)
 
     useEffect(() => {
+        // Load initial settings
         fetch('/api/settings').then(res => res.json()).then(data => {
             if (data.aiPersona) setPersona(data.aiPersona)
+            if (data.geminiApiKey) setApiKey(data.geminiApiKey)
         })
     }, [])
 
@@ -31,6 +36,24 @@ export default function SettingsPage() {
             console.error(e)
         } finally {
             setIsSaving(false)
+        }
+    }
+
+    const handleSaveApiKey = async () => {
+        setIsSavingKey(true)
+        setSavedKey(false)
+        try {
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ geminiApiKey: apiKey })
+            })
+            setSavedKey(true)
+            setTimeout(() => setSavedKey(false), 2000)
+        } catch (e) {
+            console.error(e)
+        } finally {
+            setIsSavingKey(false)
         }
     }
 
@@ -66,8 +89,39 @@ export default function SettingsPage() {
                         value={persona}
                         onChange={(e) => setPersona(e.target.value)}
                         className="w-full bg-white border border-stone-200 p-4 rounded-sm shadow-sm font-serif text-stone-700 outline-none focus:border-stone-400 focus:ring-1 focus:ring-stone-200 resize-none h-40 leading-relaxed"
-                        placeholder="請輸入你的指令..."
                     ></textarea>
+                </section>
+
+                {/* API Key (Urgent BYOK) */}
+                <section className="mb-12 animate-in fade-in slide-in-from-bottom-3 delay-75">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                            <span className="w-2 h-2 bg-red-500 rounded-full inline-block"></span>
+                            API 金鑰設定 (修復連線問題)
+                        </h2>
+                    </div>
+
+                    <p className="text-stone-500 mb-4 text-sm font-serif italic">
+                        如果 Vercel 的額度用完或 Key 失效，請在此輸入你自己申请的 Google Gemini API Key。
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-blue-600 underline ml-1">前往取得 Key</a>
+                    </p>
+                    <div className="flex gap-2">
+                        <input
+                            type="password"
+                            value={apiKey}
+                            onChange={(e) => setApiKey(e.target.value)}
+                            className="w-full bg-white border border-stone-200 p-4 rounded-sm shadow-sm font-sans text-stone-700 outline-none focus:border-stone-400"
+                            placeholder="貼上你的 API Key (AIzaSy...)"
+                        />
+                        <button
+                            onClick={handleSaveApiKey}
+                            disabled={isSavingKey}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-bold uppercase tracking-widest transition-all whitespace-nowrap ${savedKey ? 'bg-green-100 text-green-700' : 'bg-stone-800 text-stone-50 hover:bg-stone-700'}`}
+                        >
+                            {savedKey ? <Check size={16} /> : <Save size={16} />}
+                            {savedKey ? '已儲存' : isSavingKey ? '...' : '更新 Key'}
+                        </button>
+                    </div>
                 </section>
 
                 {/* Quote Manager */}
