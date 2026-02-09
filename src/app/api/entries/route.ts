@@ -75,10 +75,13 @@ export async function POST(request: Request) {
           }
         `;
 
-        // 4. Call AI (Try multiple models: v1beta API for your advanced key)
-        const apiKey = process.env.GEMINI_API_KEY;
-        // Updated model list based on your key's capabilities
-        const models = ['gemini-flash-latest', 'gemini-pro-latest', 'gemini-2.0-flash-exp'];
+        // 4. Call AI (Try multiple models: v1beta API)
+        // Hardcoded key for debugging user's environment issue
+        const apiKey = "AIzaSyBEmipKpuVJVf1RvTVCWGC7oPPr18I-FoM";
+
+        // Use the exact model that worked in curl: gemini-flash-latest
+        // Also add fallbacks just in case
+        const models = ['gemini-flash-latest', 'gemini-1.5-flash', 'gemini-pro'];
         let aiResponseText = null;
 
         if (apiKey) {
