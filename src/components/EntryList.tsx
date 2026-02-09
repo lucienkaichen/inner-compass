@@ -67,9 +67,6 @@ export function EntryList({ entries }: { entries: Entry[] }) {
                                     <div className="flex items-center gap-2 mb-3 text-indigo-600 font-bold text-sm">
                                         <BrainCircuit size={16} />
                                         <span>AI 洞察</span>
-                                        <span className="ml-auto text-xs bg-indigo-100 px-2 py-0.5 rounded-full text-indigo-700">
-                                            情緒指數: {entry.analysis.moodScore}/10
-                                        </span>
                                     </div>
                                     <p className="text-sm text-slate-600 mb-3 leading-relaxed">
                                         {entry.analysis.summary}

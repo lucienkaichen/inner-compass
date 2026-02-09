@@ -63,8 +63,7 @@ export async function POST(request: Request) {
           
           Output strictly JSON:
           {
-            "moodScore": 5,
-            "summary": "Summary in Traditional Chinese, referencing past context if relevant",
+            "summary": "Summary in Traditional Chinese, reflect on the user's feelings qualitatively",
             "patterns": ["Pattern 1 in TC", "Pattern 2"],
             "strategy": {
               "title": "Strategy Title in TC",
@@ -102,12 +101,15 @@ export async function POST(request: Request) {
                         aiResponseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
                         if (aiResponseText) break;
                     } else {
-                        console.error(`Model ${model} failed:`, await response.text());
+                        const errText = await response.text();
+                        console.error(`Model ${model} failed:`, errText);
                     }
                 } catch (e) {
-                    console.error(`Model ${model} error:`, e);
+                    console.error(`Model ${model} network error:`, e);
                 }
             }
+        } else {
+            console.warn("No API Key found, skipping AI models.");
         }
 
         // 5. Fallback Analysis (Local Logic)
@@ -117,21 +119,23 @@ export async function POST(request: Request) {
                 const jsonString = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
                 analysisData = JSON.parse(jsonString);
             } catch (e) {
-                console.error("Failed to parse AI JSON");
+                console.error("Failed to parse AI JSON, falling back to local.");
             }
         }
 
+        // Force Local Fallback if AI failed to return valid JSON
         if (!analysisData) {
-            console.log("Using Local Fallback Analysis for Entry");
-            // Local fallback logic
+            console.log("⚠️ Using Local Fallback Analysis");
+            // Local Mock Logic, purely qualitative now
             const m = mood || '平靜';
+
             let strategy = { title: "正念呼吸", content: "深呼吸五次，專注當下。", category: "Mindfulness", trigger: "日常" };
             if (m === '生氣') strategy = { title: "冷靜倒數", content: "從 100 倒數到 0，每次減 7。", category: "CBT", trigger: "憤怒時" };
             if (m === '悲傷') strategy = { title: "自我慈悲書寫", content: "寫下一句安慰自己的話。", category: "Journaling", trigger: "低落時" };
             if (m === '焦慮') strategy = { title: "著地練習", content: "找出 5 件看得到的東西。", category: "CBT", trigger: "恐慌時" };
 
             analysisData = {
-                moodScore: m === '快樂' ? 8 : m === '悲傷' ? 3 : m === '焦慮' ? 4 : m === '生氣' ? 2 : 6,
+                // moodScore removed
                 summary: `雖然我暫時無法連線到 AI 大腦，但我能感受到你現在${m}的情緒。這是一個正常的反應，請接納當下的自己。`,
                 patterns: ["暫時性情緒", "需自我關懷"],
                 strategy: strategy
@@ -143,13 +147,13 @@ export async function POST(request: Request) {
         await prisma.analysis.upsert({
             where: { entryId: entry.id },
             update: {
-                moodScore: analysisData.moodScore,
+                // moodScore removed from update
                 summary: analysisData.summary,
                 patterns: JSON.stringify(analysisData.patterns || []),
             },
             create: {
                 entryId: entry.id,
-                moodScore: analysisData.moodScore,
+                // moodScore removed from create (it's optional in DB so safe to omit)
                 summary: analysisData.summary,
                 patterns: JSON.stringify(analysisData.patterns || []),
             }
