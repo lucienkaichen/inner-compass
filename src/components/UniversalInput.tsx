@@ -6,32 +6,45 @@ import { Send, Sparkles, Wand2 } from 'lucide-react'
 
 export function UniversalInput({ onEntryCreated }: { onEntryCreated: () => void }) {
     const [content, setContent] = useState('')
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]) // Default to today YYYY-MM-DD
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [aiReply, setAiReply] = useState<string | null>(null)
+    const [error, setError] = useState<string | null>(null)
 
     const handleSubmit = async () => {
         if (!content.trim()) return
         setIsSubmitting(true)
         setAiReply(null)
+        setError(null)
 
         try {
             const res = await fetch('/api/entries', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content })
+                body: JSON.stringify({
+                    content,
+                    date: new Date(date).toISOString() // Send selected date
+                })
             })
 
-            if (res.ok) {
-                const data = await res.json()
-                setContent('')
-                // If AI provides a reply, show it
-                if (data.analysis?.aiReply) {
-                    setAiReply(data.analysis.aiReply)
-                }
-                onEntryCreated()
+            const data = await res.json()
+
+            if (!res.ok) {
+                throw new Error(data.error || '無法儲存日記，請稍後再試。')
             }
-        } catch (error) {
-            console.error('Failed to submit entry:', error)
+
+            setContent('')
+            // If AI provides a reply, show it
+            if (data.analysis?.aiReply) {
+                setAiReply(data.analysis.aiReply)
+            } else {
+                setAiReply("日記已儲存。(AI 似乎正在休息，沒有產生回應)")
+            }
+
+            onEntryCreated()
+        } catch (err: any) {
+            console.error('Failed to submit entry:', err)
+            setError(err.message || '發生未知錯誤')
         } finally {
             setIsSubmitting(false)
         }
@@ -41,6 +54,17 @@ export function UniversalInput({ onEntryCreated }: { onEntryCreated: () => void 
         <div className="max-w-2xl mx-auto w-full">
             {/* Input Area */}
             <div className="relative bg-white shadow-sm border border-stone-200 rounded-sm p-2 transition-shadow focus-within:ring-1 focus-within:ring-stone-300 focus-within:border-stone-400">
+
+                {/* Date Picker Header */}
+                <div className="border-b border-stone-100 pb-2 mb-2 flex justify-end px-2">
+                    <input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="text-xs text-stone-400 font-sans uppercase tracking-widest bg-transparent outline-none hover:text-stone-600 focus:text-stone-800 transition-colors"
+                    />
+                </div>
+
                 <textarea
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
@@ -48,9 +72,16 @@ export function UniversalInput({ onEntryCreated }: { onEntryCreated: () => void 
                     className="w-full h-40 p-4 text-lg font-serif text-stone-800 bg-transparent outline-none resize-none placeholder:text-stone-300 leading-relaxed"
                     disabled={isSubmitting}
                 />
+
+                {error && (
+                    <div className="px-4 py-2 text-xs text-red-500 font-bold bg-red-50 mx-2 mb-2 rounded-sm">
+                        ⚠️ {error}
+                    </div>
+                )}
+
                 <div className="flex justify-between items-center px-4 pb-2">
                     <span className="text-xs text-stone-300 font-sans tracking-widest uppercase">
-                        {isSubmitting ? 'AI 正在聆聽...' : 'Inner Compass'}
+                        {isSubmitting ? 'AI 分析中...' : 'Inner Compass'}
                     </span>
                     <button
                         onClick={handleSubmit}
